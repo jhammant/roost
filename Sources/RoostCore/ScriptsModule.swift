@@ -4,8 +4,8 @@ import Foundation
 /// It is run every 30 seconds and prints JSON:
 ///
 ///     {"title": "Servers", "badge": "2",
-///      "items": [{"title": "endor: ok", "open": "https://endor.local"},
-///                {"title": "Restart", "run": "ssh endor sudo systemctl restart x"},
+///      "items": [{"title": "buildbox: ok", "open": "https://buildbox.local"},
+///                {"title": "Restart", "run": "ssh buildbox sudo systemctl restart x"},
 ///                {"title": "More", "items": [ … ]}]}
 ///
 /// So a new tool can join the menu bar without any Swift.

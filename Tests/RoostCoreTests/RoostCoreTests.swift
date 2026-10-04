@@ -9,15 +9,15 @@ final class AgentsMenuTests: XCTestCase {
             "groups": [
                 "blocked": [["name": "steer-06", "sid": "s-1", "doing": "permission prompt: Bash  touch x",
                              "state": "needs you 1m"]],
-                "waiting": [["name": "recos-66", "sid": "s-2", "doing": "“Five PRs are open”\nsecond line",
+                "waiting": [["name": "docs-site", "sid": "s-2", "doing": "“Five PRs are open”\nsecond line",
                              "state": "waiting 2h"]],
-                "working": [["name": "gunflower-96", "sid": "s-3", "doing": "Bash  Run the playtest"]],
+                "working": [["name": "web-app", "sid": "s-3", "doing": "Bash  Run the playtest"]],
                 "parked": [["name": "old"], ["name": "older"]],
                 "background": [], "other": [],
             ],
             "agents": [["tool": "codex", "etime": "5-08:57:52", "command": "codex exec fix"]],
             "hosts": [
-                ["host": "endor", "ok": true, "counts": ["live": 0],
+                ["host": "buildbox", "ok": true, "counts": ["live": 0],
                  "agents": [["tool": "codex", "etime": "09:44:14", "command": "codex"],
                             ["tool": "codex", "etime": "5-08:57:52", "command": "codex"]]],
                 ["host": "devbox", "ok": false, "error": "ssh: connect timed out\nmore"],
@@ -34,9 +34,9 @@ final class AgentsMenuTests: XCTestCase {
         XCTAssertEqual(lines.first, "· Agents — 1 blocked · 1 waiting · 1 working")
         XCTAssertTrue(lines.contains("!  steer-06 · needs you 1m — permission prompt: Bash  touch x    [run quietly: \(atc) --jump s-1]"),
                       lines.joined(separator: "\n"))
-        XCTAssertTrue(lines.contains("◆  recos-66 · waiting 2h — “Five PRs are open”    [run quietly: \(atc) --jump s-2]"),
+        XCTAssertTrue(lines.contains("◆  docs-site · waiting 2h — “Five PRs are open”    [run quietly: \(atc) --jump s-2]"),
                       "first line only, with how long it has waited")
-        XCTAssertTrue(lines.contains("●  gunflower-96 — Bash  Run the playtest    [run quietly: \(atc) --jump s-3]"),
+        XCTAssertTrue(lines.contains("●  web-app — Bash  Run the playtest    [run quietly: \(atc) --jump s-3]"),
                       "no state given: no age shown")
         XCTAssertTrue(lines.contains("·      2 parked"))
     }
@@ -51,7 +51,7 @@ final class AgentsMenuTests: XCTestCase {
 
     func testServersShowAgentsStaleAndErrors() {
         let lines = MenuDump.lines(AgentsMenu.build(model: fixture(), error: nil, providers: [], atc: atc).nodes)
-        XCTAssertTrue(lines.contains("endor: 2 agents, 1 stale  ▸"))
+        XCTAssertTrue(lines.contains("buildbox: 2 agents, 1 stale  ▸"))
         XCTAssertTrue(lines.contains("· devbox: ssh: connect timed out"))
         XCTAssertTrue(lines.contains { $0.contains("codex  up 5d  stale?  codex exec fix") })
     }
@@ -88,7 +88,7 @@ final class ScriptMenuTests: XCTestCase {
     func testParsesNestedItemsActionsAndBadge() {
         let json = """
         {"title": "Servers", "badge": {"text": "2", "level": "alert"},
-         "items": [{"title": "endor ok", "open": "https://endor.local"},
+         "items": [{"title": "buildbox ok", "open": "https://buildbox.local"},
                    {"title": "Restart", "run": "echo hi"},
                    {"title": "Argv", "run": ["/bin/echo", "x"]},
                    {"title": "Info line"},
@@ -98,7 +98,7 @@ final class ScriptMenuTests: XCTestCase {
         XCTAssertEqual(result.badge, Badge("2", .alert))
         XCTAssertEqual(MenuDump.lines([result.node]), [
             "Servers  (2)  ▸",
-            "    endor ok    [open: https://endor.local]",
+            "    buildbox ok    [open: https://buildbox.local]",
             "    Restart    [run: /bin/sh -c echo hi]",
             "    Argv    [run: /bin/echo x]",
             "    · Info line",

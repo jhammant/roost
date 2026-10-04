@@ -10,11 +10,11 @@ Agents — 1 blocked · 2 waiting · 6 working
   Blocked on you
   !  steer-06 — permission prompt: Bash  touch x        → jumps to its terminal tab
   Waiting on you
-  ◆  recos-66 — “Of your 5 open PRs, one needs action…”
+  ◆  docs-site — “Of your 5 open PRs, one needs action…”
   Working
-  ●  gunflower-96 — Bash  Run the playtest
+  ●  web-app — Bash  Run the playtest
   Servers
-  endor: 10 agents, 1 stale ▸
+  buildbox: 10 agents, 1 stale ▸
   Quota: Claude 5h 25% · week 80%   Codex weekly 19%   Kimi 5h 1%   DeepSeek $11.42
   Swarm cap: ≤4 comfortable (auto) ▸
   Open atc…
@@ -46,8 +46,8 @@ Roost runs each executable every 30 seconds and reads JSON from its output:
   "title": "Servers",
   "badge": {"text": "1", "level": "alert"},
   "items": [
-    {"title": "endor: ok", "open": "https://endor.local"},
-    {"title": "Restart the relay", "run": "ssh endor sudo systemctl restart relay"},
+    {"title": "buildbox: ok", "open": "https://buildbox.local"},
+    {"title": "Restart the relay", "run": "ssh buildbox sudo systemctl restart relay"},
     {"title": "Logs", "items": [{"title": "Last deploy", "run": ["open", "-a", "Console"]}]},
     {"title": "Just a line of information"}
   ]
@@ -74,7 +74,7 @@ macOS 13+, Swift 5.9+. Roost depends on SmartClip's `SmartClipKit` through a pat
 two side by side:
 
 ```bash
-git clone https://github.com/jhammant/SmartClip ../SmartClip
+git clone -b feat/smartclipkit https://github.com/jhammant/SmartClip ../SmartClip   # SmartClipKit, until it lands on main
 ./scripts/build-app.sh --install --run
 ```
 
