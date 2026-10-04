@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/bash
+# /bin/bash on purpose: Homebrew bash 5.3 deadlocks on heredocs over ~512 bytes when macOS hands out small pipe buffers.
 # Build Roost.app — a signed, menu-bar-only bundle.
 #
 #   ./scripts/build-app.sh              build into build/Roost.app
@@ -53,6 +54,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key>   <string>13.0</string>
   <key>LSUIElement</key>              <true/>
   <key>NSHumanReadableCopyright</key> <string>MIT — Roost</string>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>Roost brings the terminal tab of the agent you click to the front, in iTerm2 or Terminal.</string>
 </dict>
 </plist>
 PLIST
@@ -63,11 +66,12 @@ IDENTITY=$(security find-identity -v -p codesigning 2>/dev/null \
 if [ -n "$IDENTITY" ]; then
   echo "==> signing as: $IDENTITY"
   codesign --force --options runtime --timestamp=none \
+    --entitlements "$ROOT/scripts/Roost.entitlements" \
     --sign "$IDENTITY" "$APP" >/dev/null
 else
   echo "!   no Developer identity found — signing ad-hoc."
   echo "!   Accessibility permission will need re-granting after every rebuild."
-  codesign --force --sign - "$APP" >/dev/null
+  codesign --force --entitlements "$ROOT/scripts/Roost.entitlements" --sign - "$APP" >/dev/null
 fi
 codesign --verify --strict "$APP"
 

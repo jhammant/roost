@@ -7,8 +7,10 @@ final class AgentsMenuTests: XCTestCase {
     private func fixture() -> [String: Any] {
         [
             "groups": [
-                "blocked": [["name": "steer-06", "sid": "s-1", "doing": "permission prompt: Bash  touch x"]],
-                "waiting": [["name": "recos-66", "sid": "s-2", "doing": "“Five PRs are open”\nsecond line"]],
+                "blocked": [["name": "steer-06", "sid": "s-1", "doing": "permission prompt: Bash  touch x",
+                             "state": "needs you 1m"]],
+                "waiting": [["name": "recos-66", "sid": "s-2", "doing": "“Five PRs are open”\nsecond line",
+                             "state": "waiting 2h"]],
                 "working": [["name": "gunflower-96", "sid": "s-3", "doing": "Bash  Run the playtest"]],
                 "parked": [["name": "old"], ["name": "older"]],
                 "background": [], "other": [],
@@ -30,8 +32,12 @@ final class AgentsMenuTests: XCTestCase {
         XCTAssertEqual(badge, Badge("1", .alert))
         let lines = MenuDump.lines(nodes)
         XCTAssertEqual(lines.first, "· Agents — 1 blocked · 1 waiting · 1 working")
-        XCTAssertTrue(lines.contains("!  steer-06 — permission prompt: Bash  touch x    [run: \(atc) --jump s-1]"))
-        XCTAssertTrue(lines.contains("◆  recos-66 — “Five PRs are open”    [run: \(atc) --jump s-2]"), "first line only")
+        XCTAssertTrue(lines.contains("!  steer-06 · needs you 1m — permission prompt: Bash  touch x    [run quietly: \(atc) --jump s-1]"),
+                      lines.joined(separator: "\n"))
+        XCTAssertTrue(lines.contains("◆  recos-66 · waiting 2h — “Five PRs are open”    [run quietly: \(atc) --jump s-2]"),
+                      "first line only, with how long it has waited")
+        XCTAssertTrue(lines.contains("●  gunflower-96 — Bash  Run the playtest    [run quietly: \(atc) --jump s-3]"),
+                      "no state given: no age shown")
         XCTAssertTrue(lines.contains("·      2 parked"))
     }
 

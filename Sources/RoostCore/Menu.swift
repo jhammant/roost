@@ -6,6 +6,7 @@ import Foundation
 public struct MenuNode {
     public enum Action {
         case run([String])          // a command, as argv; its first line of output is shown as a toast
+        case runQuietly([String])   // a command whose success you can see (a tab comes forward): toast only on failure
         case open(String)           // a URL or a file path
         case perform(() -> Void)    // in-process work (the Clipboard module)
     }
@@ -103,6 +104,7 @@ public enum MenuDump {
             var line = pad + (node.isChecked ? "✓ " : "") + (node.isEnabled ? "" : "· ") + node.title
             switch node.action {
             case .run(let argv)?: line += "    [run: \(argv.joined(separator: " "))]"
+            case .runQuietly(let argv)?: line += "    [run quietly: \(argv.joined(separator: " "))]"
             case .open(let target)?: line += "    [open: \(target)]"
             case .perform?: line += "    [action]"
             case nil: break

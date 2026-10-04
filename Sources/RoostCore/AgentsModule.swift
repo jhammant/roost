@@ -8,6 +8,9 @@ public final class AgentsModule: RoostModule {
     public let atc: String
     public var interval: TimeInterval = 5
     public var providersInterval: TimeInterval = 60
+    public var hostsInterval: TimeInterval = 60   // servers are read over ssh: slower, and they change slowly
+    private var hosts: Any?
+    private var hostsAt = Date.distantPast
 
     private let queue = DispatchQueue(label: "io.hammant.roost.agents", qos: .utility)
     private let lock = NSLock()
@@ -34,8 +37,15 @@ public final class AgentsModule: RoostModule {
     }
 
     public func refreshNow() {
-        let result = Shell.run([atc, "--json"], timeout: 90)
-        let parsed = result.ok ? (try? JSONSerialization.jsonObject(with: result.stdout)) as? [String: Any] : nil
+        let withHosts = Date().timeIntervalSince(hostsAt) > hostsInterval
+        let result = Shell.run(withHosts ? [atc, "--json"] : [atc, "--json", "--no-hosts"], timeout: 90)
+        var parsed = result.ok ? (try? JSONSerialization.jsonObject(with: result.stdout)) as? [String: Any] : nil
+        if withHosts, let fresh = parsed?["hosts"] {
+            hosts = fresh
+            hostsAt = Date()
+        } else if parsed != nil, let hosts {
+            parsed?["hosts"] = hosts  // keep the last reading of the servers between their slower polls
+        }
         var fresh: [[String: Any]]?
         if Date().timeIntervalSince(providersAt) > providersInterval, let quotamax = Shell.which("quotamax") {
             let answer = Shell.run([quotamax, "providers", "--json"], timeout: 30)
@@ -103,10 +113,11 @@ public enum AgentsMenu {
                 let name = session["name"] as? String ?? "?"
                 let doing = (session["doing"] as? String ?? "").firstLine
                 let sid = session["sid"] as? String ?? ""
+                let state = (session["state"] as? String).map { " · \($0)" } ?? ""
                 let tip = [session["title"] as? String, session["cwd"] as? String].compactMap { $0 }
                     .filter { !$0.isEmpty }.joined(separator: " — ")
-                return MenuNode("\(mark)  \(name) — \(doing)".clipped(90),
-                                action: sid.isEmpty ? nil : .run([atc, "--jump", sid]),
+                return MenuNode("\(mark)  \(name)\(state) — \(doing)".clipped(100),
+                                action: sid.isEmpty ? nil : .runQuietly([atc, "--jump", sid]),
                                 toolTip: tip.isEmpty ? nil : tip)
             }
             if items.count > limit {

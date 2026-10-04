@@ -46,13 +46,19 @@ final class MenuRenderer: NSObject {
             let url = target.contains("://") ? URL(string: target) : URL(fileURLWithPath: (target as NSString).expandingTildeInPath)
             if let url { NSWorkspace.shared.open(url) }
         case .run(let argv):
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                let result = Shell.run(argv, timeout: 120)
-                DispatchQueue.main.async {
-                    let summary = result.summary
-                    if !summary.isEmpty { Notifier.show(summary) }
-                    self?.afterRun?()
-                }
+            run(argv, toastOnSuccess: true)
+        case .runQuietly(let argv):
+            run(argv, toastOnSuccess: false)
+        }
+    }
+
+    private func run(_ argv: [String], toastOnSuccess: Bool) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let result = Shell.run(argv, timeout: 120)
+            DispatchQueue.main.async {
+                let summary = result.summary
+                if !summary.isEmpty && (toastOnSuccess || !result.ok) { Notifier.show(summary) }
+                self?.afterRun?()
             }
         }
     }
