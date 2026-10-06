@@ -7,8 +7,22 @@ public struct MenuNode {
     public enum Action {
         case run([String])          // a command, as argv; its first line of output is shown as a toast
         case runQuietly([String])   // a command whose success you can see (a tab comes forward): toast only on failure
+        case command(Command)       // a plugin's command: run in its folder with its environment, toast like `run`
         case open(String)           // a URL or a file path
         case perform(() -> Void)    // in-process work (the Clipboard module)
+    }
+
+    /// A command that belongs to a plugin, so it runs where the plugin's own refresh runs.
+    public struct Command {
+        public var argv: [String]
+        public var directory: URL?
+        public var environment: [String: String]
+
+        public init(_ argv: [String], directory: URL? = nil, environment: [String: String] = [:]) {
+            self.argv = argv
+            self.directory = directory
+            self.environment = environment
+        }
     }
 
     public var title: String
@@ -18,15 +32,19 @@ public struct MenuNode {
     public var isChecked: Bool
     public var isSeparator = false
     public var toolTip: String?
+    /// When set, Roost asks this question and only acts on "OK". For anything with side effects.
+    public var confirmation: String?
 
     public init(_ title: String, action: Action? = nil, children: [MenuNode] = [],
-                isEnabled: Bool = true, isChecked: Bool = false, toolTip: String? = nil) {
+                isEnabled: Bool = true, isChecked: Bool = false, toolTip: String? = nil,
+                confirmation: String? = nil) {
         self.title = title
         self.action = action
         self.children = children
         self.isEnabled = isEnabled
         self.isChecked = isChecked
         self.toolTip = toolTip
+        self.confirmation = confirmation
     }
 
     /// A greyed-out line that names a section or just reports something.
@@ -68,12 +86,21 @@ public struct Badge: Equatable {
 /// call `onChange` (on the main queue) when their menu or badge may have changed.
 public protocol RoostModule: AnyObject {
     var id: String { get }
+    /// What the Plugins menu calls it.
+    var name: String { get }
     var badge: Badge? { get }
     func start(onChange: @escaping () -> Void)
     func stop()
     /// Refresh synchronously, for `--dump-menu` and tests.
     func refreshNow()
+    /// Refresh soon, e.g. right after a click changed something.
+    func poke()
     func menu() -> [MenuNode]
+}
+
+public extension RoostModule {
+    var name: String { id.capitalized }
+    func poke() {}
 }
 
 public enum MenuComposer {
@@ -105,10 +132,12 @@ public enum MenuDump {
             switch node.action {
             case .run(let argv)?: line += "    [run: \(argv.joined(separator: " "))]"
             case .runQuietly(let argv)?: line += "    [run quietly: \(argv.joined(separator: " "))]"
+            case .command(let command)?: line += "    [run: \(command.argv.joined(separator: " "))]"
             case .open(let target)?: line += "    [open: \(target)]"
             case .perform?: line += "    [action]"
             case nil: break
             }
+            if let question = node.confirmation { line += "  [confirm: \(question)]" }
             if !node.children.isEmpty { line += "  ▸" }
             out.append(line)
             out += lines(node.children, depth: depth + 1)

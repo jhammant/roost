@@ -7,6 +7,7 @@ import SmartClipKit
 /// in Roost. It shares SmartClip's store, so /cpy, /pst and /clh see the same history.
 final class ClipboardModule: RoostModule {
     let id = "clipboard"
+    let name = "Clipboard"
     let engine = SmartClipEngine()
     private var onChange: (() -> Void)?
 

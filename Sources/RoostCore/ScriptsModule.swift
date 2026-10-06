@@ -11,6 +11,7 @@ import Foundation
 /// So a new tool can join the menu bar without any Swift.
 public final class ScriptsModule: RoostModule {
     public let id = "scripts"
+    public let name = "Script modules"
     public let directory: URL
     public var interval: TimeInterval = 30
     public var timeout: TimeInterval = 10
@@ -95,12 +96,14 @@ public struct ScriptResult {
 }
 
 public enum ScriptMenu {
-    public static func parse(_ data: Data, fallbackTitle: String) -> ScriptResult {
+    /// With a `context`, `run` items become plugin commands: they run in the plugin's
+    /// folder with its environment, exactly like its refresh.
+    public static func parse(_ data: Data, fallbackTitle: String, context: MenuNode.Command? = nil) -> ScriptResult {
         guard let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
             return failure(title: fallbackTitle, reason: "didn't print a JSON object")
         }
         let title = (object["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? fallbackTitle
-        let items = (object["items"] as? [[String: Any]] ?? []).map(node)
+        let items = (object["items"] as? [[String: Any]] ?? []).map { node($0, context: context) }
         let badge = parseBadge(object["badge"])
         let shown = badge.map { "\(title)  (\($0.text))" } ?? title
         return ScriptResult(node: MenuNode(shown, children: items.isEmpty ? [.header("(nothing to show)")] : items),
@@ -111,20 +114,27 @@ public enum ScriptMenu {
         ScriptResult(node: MenuNode("\(title)  ⚠︎", children: [.header("error: \(reason)".clipped(90))]), badge: nil)
     }
 
-    static func node(_ item: [String: Any]) -> MenuNode {
+    static func node(_ item: [String: Any], context: MenuNode.Command? = nil) -> MenuNode {
         let title = item["title"] as? String ?? "?"
-        let children = (item["items"] as? [[String: Any]] ?? []).map(node)
-        var action: MenuNode.Action?
+        let children = (item["items"] as? [[String: Any]] ?? []).map { node($0, context: context) }
+        var argv: [String]?
         if let command = item["run"] as? String {
-            action = .run(["/bin/sh", "-c", command])
-        } else if let argv = item["run"] as? [String], !argv.isEmpty {
-            action = .run(argv)
+            argv = ["/bin/sh", "-c", command]
+        } else if let list = item["run"] as? [String], !list.isEmpty {
+            argv = list
+        }
+        var action: MenuNode.Action?
+        if let argv {
+            action = context.map { .command(MenuNode.Command(argv, directory: $0.directory, environment: $0.environment)) }
+                ?? .run(argv)
         } else if let target = item["open"] as? String {
             action = .open(target)
         }
         let enabled = (item["disabled"] as? Bool).map { !$0 } ?? (action != nil || !children.isEmpty)
+        let confirm = (item["confirm"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         return MenuNode(title, action: action, children: children, isEnabled: enabled,
-                        isChecked: item["checked"] as? Bool ?? false, toolTip: item["tooltip"] as? String)
+                        isChecked: item["checked"] as? Bool ?? false, toolTip: item["tooltip"] as? String,
+                        confirmation: action == nil ? nil : confirm)
     }
 
     static func parseBadge(_ value: Any?) -> Badge? {

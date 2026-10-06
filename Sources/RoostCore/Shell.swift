@@ -39,16 +39,29 @@ public enum Shell {
         return nil
     }
 
-    public static func run(_ argv: [String], timeout: TimeInterval = 30) -> Result {
-        guard let first = argv.first, let executable = which(first) else {
-            return Result(status: -1, stdout: Data(), stderr: "", launchError: "\(argv.first ?? "?") not found")
+    /// Runs `argv`. `extraEnvironment` is added to Roost's own; with a `directory`, the
+    /// command runs there and a relative executable (`./tool`) is found there too.
+    public static func run(_ argv: [String], timeout: TimeInterval = 30,
+                           extraEnvironment: [String: String] = [:], directory: URL? = nil) -> Result {
+        // Messages name the command as it was written (`./tool`), not its resolved path.
+        guard let first = argv.first else {
+            return Result(status: -1, stdout: Data(), stderr: "", launchError: "? not found")
+        }
+        var argv = argv
+        if let directory, first.contains("/"), !first.hasPrefix("/") {
+            argv[0] = directory.appendingPathComponent(first).standardizedFileURL.path
+        }
+        guard let executable = which(argv[0]) else {
+            return Result(status: -1, stdout: Data(), stderr: "", launchError: "\(first) not found")
         }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = Array(argv.dropFirst())
         var environment = ProcessInfo.processInfo.environment
         environment["PATH"] = searchPath
+        environment.merge(extraEnvironment) { _, new in new }
         process.environment = environment
+        if let directory { process.currentDirectoryURL = directory }
         process.standardInput = FileHandle.nullDevice
         let out = Pipe()
         let err = Pipe()

@@ -35,7 +35,11 @@ Open at login ✓
 |---|---|
 | **Agents** | [atc](https://github.com/jhammant/atc), air traffic control for coding agents. Badge: sessions blocked on a prompt (red), else waiting for you (orange). Click a session to jump to its terminal tab; raise or lower the swarm cap; see your servers and every provider's quota. |
 | **Clipboard** | [SmartClip](https://github.com/jhammant/SmartClip)'s engine: records everything you copy (text, images with their text read on-device, file paths), ⌥⌘V to search and paste it back. Same history store as SmartClip's `/cpy`, `/pst` and `/clh`. |
+| **Plugins** | Folders in `~/.config/roost/plugins/`, each with a `plugin.json`: their own schedule, timeout and environment, confirmations for anything with side effects, and a tool can ship its plugin in its own repo. See [Plugins](#plugins). |
 | **Scripts** | Every executable in `~/.config/roost/modules/` becomes a submenu. No Swift needed. |
+
+Every module, built in or plugin, can be switched off under **Plugins ▸** in the menu. Roost remembers it in
+`~/.config/roost/settings.json`.
 
 ### Writing a script module
 
@@ -68,6 +72,61 @@ mkdir -p ~/.config/roost/modules
 cp examples/modules/this-mac.sh ~/.config/roost/modules/
 ```
 
+## Plugins
+
+A script module is one executable. A plugin is a folder, so it can carry its own code, ship inside the repo of
+the tool it belongs to, and say how it wants to run:
+
+```json
+{
+  "id": "crm-mail-sync",
+  "name": "CRM mail sync",
+  "description": "Emails waiting to be logged to HubSpot",
+  "version": "0.1.0",
+  "command": ["./roost_plugin.py"],
+  "interval": 300,
+  "timeout": 20,
+  "env": {"CRM_MAIL_SYNC_CONFIG": "~/.config/crm-mail-sync/config.yaml"},
+  "requires": ["python3", "crm-mail-sync"]
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `command` | Required. An argv array or a shell string. A relative path (`./roost_plugin.py`) is found in the plugin's folder. |
+| `id` | Lowercase, unique. Defaults to the folder name. |
+| `name`, `description`, `version` | Shown under **Plugins ▸**. |
+| `interval` | Seconds between refreshes, 5 to 86400. Default 30. |
+| `timeout` | Seconds before a refresh is stopped, 1 to 300. Default 10. |
+| `env` | Extra environment variables; a leading `~` is expanded. Roost adds `ROOST_PLUGIN_ID` and `ROOST_PLUGIN_DIR`. |
+| `requires` | Commands that must be on the PATH. Until they are, the plugin shows "needs … on the PATH" instead of failing. |
+
+The command prints the same JSON as a script module, with two additions:
+
+- Its `run` items run in the plugin's folder with its environment, so a plugin can call itself back:
+  `{"title": "Skip", "run": ["./roost_plugin.py", "skip", "42"]}`. The plugin refreshes straight afterwards.
+- `"confirm": "Log this email to HubSpot?"` on an item asks first and only runs it on OK. Use it for anything
+  with side effects.
+
+A plugin that fails, times out or prints something other than JSON shows as `name ⚠︎` with the reason, and a
+folder with a bad `plugin.json` is listed under **Plugins ▸** with what to fix. Neither takes the menu down.
+Plugins added, edited or removed while Roost runs are picked up within 30 seconds, or at once with
+**Plugins ▸ Reload plugins**.
+
+```bash
+Roost --check-plugin path/to/plugin      # run it once and print its menu, as Roost would show it
+Roost --install-plugin path/to/plugin    # check plugin.json, then symlink it into ~/.config/roost/plugins
+Roost --plugins                          # what is installed, on or off, and anything broken
+Roost --uninstall-plugin crm-mail-sync   # remove the link; the plugin's folder is untouched
+```
+
+`ROOST_PLUGINS_DIR` and `ROOST_CONFIG_DIR` point Roost at other folders, for testing.
+
+Plugins in the wild:
+
+- [crm-mail-sync](https://github.com/jhammant/crm-mail-sync/tree/main/integrations/roost): the HubSpot
+  email-logging review queue, with *Log to HubSpot…* and *Skip* per email.
+
 ## Build and install
 
 macOS 13+, Swift 5.9+. Roost depends on SmartClip's `SmartClipKit` through a path dependency, so clone the
@@ -87,7 +146,7 @@ running, Roost leaves it recording and offers to take over, so a copy is never r
 ## Checking it without the menu bar
 
 ```bash
-/Applications/Roost.app/Contents/MacOS/Roost --dump-menu   # every module, built once, printed as text
+/Applications/Roost.app/Contents/MacOS/Roost --dump-menu   # every module and plugin, built once, printed as text
 ROOST_MODULES_DIR=examples/modules .build/debug/Roost --dump-menu
 swift test
 ```

@@ -3,18 +3,30 @@ import RoostCore
 import ServiceManagement
 import SmartClipKit
 
-/// Builds Roost's modules. Shared by the app and `--dump-menu`.
+/// Builds Roost's modules: Agents and Clipboard, then the installed plugins, then
+/// script modules. Shared by the app and the command line.
 enum Modules {
-    static func make() -> (agents: AgentsModule, clipboard: ClipboardModule, scripts: ScriptsModule) {
-        (AgentsModule(), ClipboardModule(), ScriptsModule())
+    static func make() -> ModuleRegistry {
+        ModuleRegistry(leading: [AgentsModule(), ClipboardModule()], trailing: [ScriptsModule()])
     }
 }
 
 /// Roost's own items, below every module.
 enum AppItems {
-    static func nodes(onToggleLogin: @escaping () -> Void, onReload: @escaping () -> Void) -> [MenuNode] {
+    static func nodes(registry: ModuleRegistry, onToggleLogin: @escaping () -> Void, onReload: @escaping () -> Void) -> [MenuNode] {
         let folder = ScriptsModule.defaultDirectory.path
+        let plugins = registry.pluginsDirectory
         return [
+            registry.pluginsMenu(toggle: { id, enabled in
+                do {
+                    try registry.setEnabled(id, enabled)
+                } catch {
+                    Notifier.show("Couldn't save Roost's settings: \(error.localizedDescription)")
+                }
+            }, openFolder: {
+                try? FileManager.default.createDirectory(at: plugins, withIntermediateDirectories: true)
+                NSWorkspace.shared.open(plugins)
+            }, reload: onReload),
             MenuNode("Open at login", action: .perform(onToggleLogin), isChecked: SMAppService.mainApp.status == .enabled),
             MenuNode("Script modules folder…", action: .perform {
                 try? FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
@@ -28,17 +40,10 @@ enum AppItems {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    private let agents: AgentsModule
-    private let clipboard: ClipboardModule
-    private let scripts: ScriptsModule
-    private var modules: [RoostModule] { [agents, clipboard, scripts] }
+    private let registry = Modules.make()
     private let renderer = MenuRenderer()
     private var statusItem: NSStatusItem!
-
-    override init() {
-        (agents, clipboard, scripts) = Modules.make()
-        super.init()
-    }
+    private var pluginWatch: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -49,32 +54,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
         statusItem.menu = menu
 
-        renderer.afterRun = { [weak self] in
-            self?.agents.poke()
-            self?.scripts.poke()
-        }
-        for module in modules {
-            module.start { [weak self] in self?.updateBadge() }
+        renderer.afterRun = { [weak self] in self?.registry.pokeAll() }
+        registry.start { [weak self] in self?.updateBadge() }
+        // Pick up plugins installed or removed while Roost runs, so their badges show
+        // without opening the menu first. Unchanged plugins are left running.
+        pluginWatch = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            self?.registry.reload()
+            self?.updateBadge()
         }
         registerAtLoginOnce()
         updateBadge()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        modules.forEach { $0.stop() }
+        registry.stop()
     }
 
     // MARK: - Menu
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        let items = AppItems.nodes(onToggleLogin: { [weak self] in self?.toggleOpenAtLogin() },
-                                   onReload: { [weak self] in self?.agents.poke(); self?.scripts.poke() })
-        renderer.fill(menu, with: MenuComposer.compose(modules, appItems: items))
+        registry.reload()
+        let items = AppItems.nodes(registry: registry,
+                                   onToggleLogin: { [weak self] in self?.toggleOpenAtLogin() },
+                                   onReload: { [weak self] in
+                                       self?.registry.reload()
+                                       self?.registry.pokeAll()
+                                   })
+        renderer.fill(menu, with: MenuComposer.compose(registry.active, appItems: items))
     }
 
     private func updateBadge() {
         guard let button = statusItem?.button else { return }
-        guard let badge = Badge.mostUrgent(modules.map(\.badge)) else {
+        guard let badge = Badge.mostUrgent(registry.active.map(\.badge)) else {
             button.attributedTitle = NSAttributedString(string: "")
             return
         }

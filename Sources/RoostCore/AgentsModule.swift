@@ -5,6 +5,7 @@ import Foundation
 /// waiting for you, and every click hands back to atc (`--jump`, `--cap`, `--open`).
 public final class AgentsModule: RoostModule {
     public let id = "agents"
+    public let name = "Agents"
     public let atc: String
     public var interval: TimeInterval = 5
     public var providersInterval: TimeInterval = 60
