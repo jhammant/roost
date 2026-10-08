@@ -83,11 +83,19 @@ public enum Shell {
             errData = err.fileHandleForReading.readDataToEndOfFile()
             group.leave()
         }
+        // Pipe's handles aren't closed when it goes away, and Roost runs a command every few
+        // seconds for days: close the read ends ourselves, or the app runs out of files.
+        func closeReadEnds() {
+            try? out.fileHandleForReading.close()
+            try? err.fileHandleForReading.close()
+        }
         do {
             try process.run()
         } catch {
             out.fileHandleForWriting.closeFile()
             err.fileHandleForWriting.closeFile()
+            group.wait()
+            closeReadEnds()
             return Result(status: -1, stdout: Data(), stderr: "", launchError: error.localizedDescription)
         }
         let timer = DispatchWorkItem { if process.isRunning { process.terminate() } }
@@ -95,6 +103,7 @@ public enum Shell {
         process.waitUntilExit()
         timer.cancel()
         group.wait()
+        closeReadEnds()
         let timedOut = process.terminationReason == .uncaughtSignal && process.terminationStatus == SIGTERM
         return Result(status: process.terminationStatus, stdout: outData,
                       stderr: String(decoding: errData, as: UTF8.self),
