@@ -73,7 +73,7 @@ public final class ScriptsModule: RoostModule {
         running = true
         queue.async { [weak self] in
             while let self = self, self.running {
-                self.refreshNow()
+                autoreleasepool { self.refreshNow() }  // see AgentsModule.start
                 DispatchQueue.main.async(execute: onChange)
                 _ = self.wake.wait(timeout: .now() + self.interval)
             }
