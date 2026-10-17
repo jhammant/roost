@@ -69,7 +69,9 @@ public final class AgentsModule: RoostModule {
         running = true
         queue.async { [weak self] in
             while let self = self, self.running {
-                self.refreshNow()
+                // This block never returns, so GCD never drains its autorelease pool: without
+                // our own, every poll's output and parsed JSON stay alive (37 GB in six days).
+                autoreleasepool { self.refreshNow() }
                 DispatchQueue.main.async(execute: onChange)
                 _ = self.wake.wait(timeout: .now() + self.interval)
             }
