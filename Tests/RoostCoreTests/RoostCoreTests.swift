@@ -169,3 +169,45 @@ final class BadgeAndComposeTests: XCTestCase {
         XCTAssertEqual(Shell.run(["definitely-not-a-command-xyz"]).summary, "definitely-not-a-command-xyz not found")
     }
 }
+
+final class HotKeyTests: XCTestCase {
+    func testParsesShortcutsTheWayPeopleWriteThem() {
+        // Arrange
+        let grid = HotKeySpec("ctrl+opt+cmd+g")
+        let arrow = HotKeySpec("Cmd + Shift + Left")
+        let function = HotKeySpec("opt+f5")
+        // Assert
+        XCTAssertEqual(grid?.keyCode, 5)
+        XCTAssertEqual(grid?.modifiers, HotKeySpec.control | HotKeySpec.option | HotKeySpec.command)
+        XCTAssertEqual(grid?.display, "⌃⌥⌘G")
+        XCTAssertEqual(grid?.keyEquivalent, "g")
+        XCTAssertEqual(arrow?.keyCode, 123)
+        XCTAssertEqual(arrow?.display, "⇧⌘←")
+        XCTAssertEqual(function?.keyCode, 96)
+        XCTAssertEqual(function?.keyEquivalent, String(UnicodeScalar(0xF708)!))
+    }
+
+    func testRejectsBareKeysAndUnknownNames() {
+        XCTAssertNil(HotKeySpec("g"), "a bare letter would fire whenever anyone typed it")
+        XCTAssertNil(HotKeySpec("hyper+g"))
+        XCTAssertNil(HotKeySpec("cmd+"))
+        XCTAssertNil(HotKeySpec("cmd+banana"))
+    }
+
+    func testPluginItemsDeclareShortcutsAndTheFirstClaimWins() {
+        // Arrange
+        let json = #"""
+        {"title": "Windows", "items": [
+          {"title": "Grid", "run": ["arrange", "grid"], "hotkey": "ctrl+opt+cmd+g"},
+          {"title": "Info only", "hotkey": "ctrl+opt+cmd+i"},
+          {"title": "More", "items": [{"title": "Grid again", "run": ["x"], "hotkey": "⌃+⌥+⌘+g"},
+                                      {"title": "Focus", "run": ["arrange", "focus"], "hotkey": "ctrl+opt+cmd+f"}]}]}
+        """#
+        // Act
+        let node = ScriptMenu.parse(Data(json.utf8), fallbackTitle: "x").node
+        let claimed = HotKeys.collect([node])
+        // Assert
+        XCTAssertEqual(claimed.map(\.node.title), ["Grid", "Focus"], "no action, no shortcut; a duplicate loses")
+        XCTAssertTrue(MenuDump.lines([node]).contains("    Grid    [run: arrange grid]  [⌃⌥⌘G]"))
+    }
+}

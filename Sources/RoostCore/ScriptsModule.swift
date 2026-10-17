@@ -133,9 +133,11 @@ public enum ScriptMenu {
         }
         let enabled = (item["disabled"] as? Bool).map { !$0 } ?? (action != nil || !children.isEmpty)
         let confirm = (item["confirm"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-        return MenuNode(title, action: action, children: children, isEnabled: enabled,
-                        isChecked: item["checked"] as? Bool ?? false, toolTip: item["tooltip"] as? String,
-                        confirmation: action == nil ? nil : confirm)
+        var node = MenuNode(title, action: action, children: children, isEnabled: enabled,
+                            isChecked: item["checked"] as? Bool ?? false, toolTip: item["tooltip"] as? String,
+                            confirmation: action == nil ? nil : confirm)
+        node.hotKey = action == nil ? nil : (item["hotkey"] as? String).flatMap(HotKeySpec.init)
+        return node
     }
 
     static func parseBadge(_ value: Any?) -> Badge? {

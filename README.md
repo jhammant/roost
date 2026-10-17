@@ -63,6 +63,10 @@ Roost runs each executable every 30 seconds and reads JSON from its output:
 - An item can `run` a shell command (string) or an argv array, `open` a URL or path, or hold `items` (a
   submenu). Add `disabled`, `checked` or `tooltip` as you like. An item with none of these is a greyed line.
   `{"separator": true}` draws a line.
+- `"hotkey": "ctrl+opt+cmd+g"` on an item with an action makes a system-wide shortcut that does what clicking it
+  does, and shows it beside the item. Modifiers: `cmd`, `shift`, `opt`, `ctrl` (at least one); keys: letters,
+  digits, punctuation, `f1`–`f12`, arrows, `return`, `tab`, `space`, `escape`. If two items ask for the same
+  combination the first keeps it, and one another app already owns is reported once.
 - A script that fails, times out (10s) or prints something other than JSON shows up as `name ⚠︎` with the
   error inside, so a broken module never takes the menu down.
 
