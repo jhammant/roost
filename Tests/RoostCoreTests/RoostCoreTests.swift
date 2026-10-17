@@ -27,6 +27,19 @@ final class AgentsMenuTests: XCTestCase {
         ]
     }
 
+    func testPlainTerminalSessionJumpsStraightToItsTty() {
+        // Arrange
+        let plain: [String: Any] = ["kind": "interactive", "tty": "/dev/ttys003", "herdr": NSNull()]
+        let herdr: [String: Any] = ["kind": "interactive", "tty": "/dev/ttys004", "herdr": "w1:p2"]
+        let background: [String: Any] = ["kind": "background", "tty": "/dev/ttys007"]
+        // Act
+        let commands = [plain, herdr, background].map { AgentsMenu.jumpCommand($0, sid: "s-9", atc: atc) }
+        // Assert
+        XCTAssertEqual(commands, [[atc, "--jump", "s-9", "--tty", "/dev/ttys003"],
+                                  [atc, "--jump", "s-9"],
+                                  [atc, "--jump", "s-9"]])
+    }
+
     func testBlockedSessionsBadgeRedAndJumpThroughAtc() {
         let (nodes, badge) = AgentsMenu.build(model: fixture(), error: nil, providers: [], atc: atc)
         XCTAssertEqual(badge, Badge("1", .alert))
@@ -107,6 +120,12 @@ final class ScriptMenuTests: XCTestCase {
         ])
     }
 
+    func testSeparatorItemDrawsALine() {
+        let json = #"{"title": "Tools", "items": [{"title": "One"}, {"separator": true}, {"title": "Two"}]}"#
+        let result = ScriptMenu.parse(Data(json.utf8), fallbackTitle: "x")
+        XCTAssertEqual(MenuDump.lines([result.node]), ["Tools  ▸", "    · One", "    ────────", "    · Two"])
+    }
+
     func testBadJSONBecomesAnErrorEntry() {
         let result = ScriptMenu.parse(Data("not json".utf8), fallbackTitle: "broken")
         XCTAssertNil(result.badge)
@@ -148,5 +167,47 @@ final class BadgeAndComposeTests: XCTestCase {
         XCTAssertTrue(result.ok)
         XCTAssertTrue(result.output.contains("/opt/homebrew/bin"))
         XCTAssertEqual(Shell.run(["definitely-not-a-command-xyz"]).summary, "definitely-not-a-command-xyz not found")
+    }
+}
+
+final class HotKeyTests: XCTestCase {
+    func testParsesShortcutsTheWayPeopleWriteThem() {
+        // Arrange
+        let grid = HotKeySpec("ctrl+opt+cmd+g")
+        let arrow = HotKeySpec("Cmd + Shift + Left")
+        let function = HotKeySpec("opt+f5")
+        // Assert
+        XCTAssertEqual(grid?.keyCode, 5)
+        XCTAssertEqual(grid?.modifiers, HotKeySpec.control | HotKeySpec.option | HotKeySpec.command)
+        XCTAssertEqual(grid?.display, "⌃⌥⌘G")
+        XCTAssertEqual(grid?.keyEquivalent, "g")
+        XCTAssertEqual(arrow?.keyCode, 123)
+        XCTAssertEqual(arrow?.display, "⇧⌘←")
+        XCTAssertEqual(function?.keyCode, 96)
+        XCTAssertEqual(function?.keyEquivalent, String(UnicodeScalar(0xF708)!))
+    }
+
+    func testRejectsBareKeysAndUnknownNames() {
+        XCTAssertNil(HotKeySpec("g"), "a bare letter would fire whenever anyone typed it")
+        XCTAssertNil(HotKeySpec("hyper+g"))
+        XCTAssertNil(HotKeySpec("cmd+"))
+        XCTAssertNil(HotKeySpec("cmd+banana"))
+    }
+
+    func testPluginItemsDeclareShortcutsAndTheFirstClaimWins() {
+        // Arrange
+        let json = #"""
+        {"title": "Windows", "items": [
+          {"title": "Grid", "run": ["arrange", "grid"], "hotkey": "ctrl+opt+cmd+g"},
+          {"title": "Info only", "hotkey": "ctrl+opt+cmd+i"},
+          {"title": "More", "items": [{"title": "Grid again", "run": ["x"], "hotkey": "⌃+⌥+⌘+g"},
+                                      {"title": "Focus", "run": ["arrange", "focus"], "hotkey": "ctrl+opt+cmd+f"}]}]}
+        """#
+        // Act
+        let node = ScriptMenu.parse(Data(json.utf8), fallbackTitle: "x").node
+        let claimed = HotKeys.collect([node])
+        // Assert
+        XCTAssertEqual(claimed.map(\.node.title), ["Grid", "Focus"], "no action, no shortcut; a duplicate loses")
+        XCTAssertTrue(MenuDump.lines([node]).contains("    Grid    [run: arrange grid]  [⌃⌥⌘G]"))
     }
 }

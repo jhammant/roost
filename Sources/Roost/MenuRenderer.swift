@@ -25,6 +25,10 @@ final class MenuRenderer: NSObject {
         if node.isSeparator { return .separator() }
         let item = NSMenuItem(title: node.title, action: nil, keyEquivalent: "")
         item.toolTip = node.toolTip
+        if let hotKey = node.hotKey {  // shown beside the item, so the shortcut can be found
+            item.keyEquivalent = hotKey.keyEquivalent
+            item.keyEquivalentModifierMask = Self.modifierMask(hotKey)
+        }
         item.state = node.isChecked ? .on : .off
         if let action = node.action, node.isEnabled {
             item.target = self
@@ -43,8 +47,27 @@ final class MenuRenderer: NSObject {
 
     @objc private func fire(_ sender: NSMenuItem) {
         guard let box = sender.representedObject as? ActionBox else { return }
-        if let question = box.confirmation, !confirm(question, button: sender.title) { return }
-        switch box.action {
+        perform(box.action, confirmation: box.confirmation, title: sender.title)
+    }
+
+    /// What clicking the item does, for a global shortcut.
+    func perform(_ node: MenuNode) {
+        guard let action = node.action, node.isEnabled else { return }
+        perform(action, confirmation: node.confirmation, title: node.title)
+    }
+
+    private static func modifierMask(_ hotKey: HotKeySpec) -> NSEvent.ModifierFlags {
+        var mask: NSEvent.ModifierFlags = []
+        if hotKey.modifiers & HotKeySpec.command != 0 { mask.insert(.command) }
+        if hotKey.modifiers & HotKeySpec.shift != 0 { mask.insert(.shift) }
+        if hotKey.modifiers & HotKeySpec.option != 0 { mask.insert(.option) }
+        if hotKey.modifiers & HotKeySpec.control != 0 { mask.insert(.control) }
+        return mask
+    }
+
+    private func perform(_ action: MenuNode.Action, confirmation: String?, title: String) {
+        if let question = confirmation, !confirm(question, button: title) { return }
+        switch action {
         case .perform(let work):
             work()
         case .open(let target):

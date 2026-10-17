@@ -34,6 +34,8 @@ public struct MenuNode {
     public var toolTip: String?
     /// When set, Roost asks this question and only acts on "OK". For anything with side effects.
     public var confirmation: String?
+    /// A system-wide shortcut that does what clicking this item does.
+    public var hotKey: HotKeySpec?
 
     public init(_ title: String, action: Action? = nil, children: [MenuNode] = [],
                 isEnabled: Bool = true, isChecked: Bool = false, toolTip: String? = nil,
@@ -118,6 +120,24 @@ public enum MenuComposer {
     }
 }
 
+public enum HotKeys {
+    /// Every item in these menus that asks for a shortcut. The first item to claim a combination keeps it.
+    public static func collect(_ nodes: [MenuNode]) -> [(spec: HotKeySpec, node: MenuNode)] {
+        var seen = Set<HotKeySpec>()
+        var out: [(spec: HotKeySpec, node: MenuNode)] = []
+        func walk(_ nodes: [MenuNode]) {
+            for node in nodes {
+                if let spec = node.hotKey, node.action != nil, node.isEnabled, seen.insert(spec).inserted {
+                    out.append((spec, node))
+                }
+                walk(node.children)
+            }
+        }
+        walk(nodes)
+        return out
+    }
+}
+
 public enum MenuDump {
     /// The menu as indented text: `▸` marks a submenu, `[…]` what a click does, `·` a greyed line.
     public static func lines(_ nodes: [MenuNode], depth: Int = 0) -> [String] {
@@ -138,6 +158,7 @@ public enum MenuDump {
             case nil: break
             }
             if let question = node.confirmation { line += "  [confirm: \(question)]" }
+            if let hotKey = node.hotKey { line += "  [\(hotKey.display)]" }
             if !node.children.isEmpty { line += "  ▸" }
             out.append(line)
             out += lines(node.children, depth: depth + 1)

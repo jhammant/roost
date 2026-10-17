@@ -44,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let renderer = MenuRenderer()
     private var statusItem: NSStatusItem!
     private var pluginWatch: Timer?
+    private var hotKeys: HotKeyCenter?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -55,15 +56,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.menu = menu
 
         renderer.afterRun = { [weak self] in self?.registry.pokeAll() }
-        registry.start { [weak self] in self?.updateBadge() }
+        registry.start { [weak self] in self?.refreshed() }
+        hotKeys = HotKeyCenter(fire: { [weak self] node in self?.renderer.perform(node) })
         // Pick up plugins installed or removed while Roost runs, so their badges show
         // without opening the menu first. Unchanged plugins are left running.
         pluginWatch = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             self?.registry.reload()
-            self?.updateBadge()
+            self?.refreshed()
         }
         registerAtLoginOnce()
+        refreshed()
+    }
+
+    /// A module changed: redraw the badge and pick up shortcuts that were added, moved or dropped.
+    private func refreshed() {
         updateBadge()
+        // Only plugins and script modules declare shortcuts; the built-in menus are not rebuilt for this.
+        let declaring = registry.active.filter { $0 is PluginModule || $0 is ScriptsModule }
+        hotKeys?.update(HotKeys.collect(declaring.flatMap { $0.menu() }))
     }
 
     func applicationWillTerminate(_ notification: Notification) {

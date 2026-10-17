@@ -120,7 +120,7 @@ public enum AgentsMenu {
                 let tip = [session["title"] as? String, session["cwd"] as? String].compactMap { $0 }
                     .filter { !$0.isEmpty }.joined(separator: " — ")
                 return MenuNode("\(mark)  \(name)\(state) — \(doing)".clipped(100),
-                                action: sid.isEmpty ? nil : .runQuietly([atc, "--jump", sid]),
+                                action: sid.isEmpty ? nil : .runQuietly(jumpCommand(session, sid: sid, atc: atc)),
                                 toolTip: tip.isEmpty ? nil : tip)
             }
             if items.count > limit {
@@ -159,6 +159,15 @@ public enum AgentsMenu {
         let badge = !blocked.isEmpty ? Badge("\(blocked.count)", .alert)
             : (!waiting.isEmpty ? Badge("\(waiting.count)", .warn) : nil)
         return (nodes, badge)
+    }
+
+    /// A plain terminal session also passes the tty from the last poll, so atc focuses it in under a
+    /// second instead of rescanning everything first (~10 s). Background and herdr sessions need the scan.
+    static func jumpCommand(_ session: [String: Any], sid: String, atc: String) -> [String] {
+        let tty = session["tty"] as? String ?? ""
+        let inHerdr = !(session["herdr"] as? String ?? "").isEmpty
+        let plain = session["kind"] as? String == "interactive" && !inHerdr
+        return plain && !tty.isEmpty ? [atc, "--jump", sid, "--tty", tty] : [atc, "--jump", sid]
     }
 
     static func agentLine(_ agent: [String: Any]) -> MenuNode {

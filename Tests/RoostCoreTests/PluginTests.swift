@@ -51,6 +51,13 @@ final class PluginManifestTests: XCTestCase {
         XCTAssertEqual(manifest.environment["CONFIG"], NSHomeDirectory() + "/x.yaml")
     }
 
+    func testOnlyALeadingTildeIsExpandedSoURLsSurvive() throws {
+        let manifest = try PluginManifest.parse(["command": "x", "env": ["SERVER": "https://amail.example/", "NOTE": "a~b//c"]],
+                                                folderName: "x")
+        XCTAssertEqual(manifest.environment["SERVER"], "https://amail.example/")
+        XCTAssertEqual(manifest.environment["NOTE"], "a~b//c")
+    }
+
     func testFullManifest() throws {
         let manifest = try PluginManifest.parse([
             "id": "mail-sync", "name": "Mail sync", "version": "0.2.0", "description": "Review queue",
