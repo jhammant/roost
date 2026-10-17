@@ -1,0 +1,4 @@
+{
+  "needs": [{"kind": "approval", "host": null, "sid": null, "title": "Approve action", "detail": "Review details", "since": 60, "hint": "Use atc web."}],
+  "counts": {"needs": 1, "needs_urgent": 1}
+}

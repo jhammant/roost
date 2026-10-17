@@ -1,0 +1,13 @@
+{
+  "groups": {},
+  "hosts": [{"host": "server1", "ok": true, "groups": {
+    "blocked": [{"name": "session-a", "sid": "session-a", "kind": "interactive", "tty": "/dev/ttys003", "doing": "Permission prompt"}]
+  }}],
+  "counts": {"needs": 2, "needs_urgent": 1, "jobs_failing": 1},
+  "needs": [
+    {"kind": "blocked", "host": "server1", "sid": "session-a", "title": "session-a", "detail": "Permission prompt", "since": 60, "hint": "Answer on server1."},
+    {"kind": "job", "host": "server1", "sid": null, "title": "job-a", "detail": "Failed check", "since": null, "hint": "Open Jobs.", "job": "job-a", "via": "server1"}
+  ],
+  "jobs": {"server1": {"ok": true, "via": "server1", "via_key": "local", "jobs": [{"name": "job-a", "failing": true}]}},
+  "later": [{"kind": "wake", "title": "Wake session-a", "when": null, "in": 720, "session": "session-a", "host": "server1"}]
+}

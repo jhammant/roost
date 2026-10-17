@@ -20,7 +20,7 @@ final class AgentsMenuTests: XCTestCase {
                 ["host": "buildbox", "ok": true, "counts": ["live": 0],
                  "agents": [["tool": "codex", "etime": "09:44:14", "command": "codex"],
                             ["tool": "codex", "etime": "5-08:57:52", "command": "codex"]]],
-                ["host": "devbox", "ok": false, "error": "ssh: connect timed out\nmore"],
+                ["host": "server2", "ok": false, "error": "ssh: connect timed out\nmore"],
             ],
             "quota": ["session": ["percentUsed": 10], "weekly": ["effectivePercent": 77],
                       "headroom": "comfortable", "override": NSNull(), "advice": ["parallelism": 4]],
@@ -65,7 +65,7 @@ final class AgentsMenuTests: XCTestCase {
     func testServersShowAgentsStaleAndErrors() {
         let lines = MenuDump.lines(AgentsMenu.build(model: fixture(), error: nil, providers: [], atc: atc).nodes)
         XCTAssertTrue(lines.contains("buildbox: 2 agents, 1 stale  ▸"))
-        XCTAssertTrue(lines.contains("· devbox: ssh: connect timed out"))
+        XCTAssertTrue(lines.contains("· server2: ssh: connect timed out"))
         XCTAssertTrue(lines.contains { $0.contains("codex  up 5d  stale?  codex exec fix") })
     }
 

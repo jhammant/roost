@@ -1,0 +1,12 @@
+{
+  "later": [
+    {"kind": "reminder", "title": "Next day", "when": "2026-01-02T00:00:00Z", "in": null, "source": "example.com", "host": "server1"},
+    {"kind": "wake", "title": "Wake session-a", "when": null, "in": 720, "session": "session-a", "host": "laptop"},
+    {"kind": "reminder", "title": "Unknown time", "when": null, "in": null, "source": "example.com", "host": null},
+    {"kind": "wake", "title": "Too late", "when": null, "in": 86401, "session": "session-b", "host": null},
+    {"kind": "reminder", "title": "Past item", "when": null, "in": -1, "source": "example.com", "host": null},
+    {"kind": "reminder", "title": "Due now", "when": null, "in": 0, "source": "example.com", "host": null},
+    {"kind": "wake", "title": "ISO time", "when": "2026-01-01T00:30:00.000Z", "session": "session-b", "host": null},
+    {"kind": "reminder", "title": "Invalid time", "when": "invalid", "in": null, "source": "example.com", "host": null}
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "groups": {
+    "blocked": [{"name": "session-a", "sid": "session-a", "kind": "interactive", "tty": "/dev/ttys003", "state": "needs you 1m", "doing": "Permission prompt"}],
+    "waiting": [{"name": "session-b", "sid": "session-b", "state": "waiting 2h", "doing": "Ready for review\nMore detail"}]
+  },
+  "counts": {"needs": 8, "needs_urgent": 5, "jobs_failing": 2},
+  "needs": [
+    {"kind": "waiting", "host": null, "sid": "session-b", "title": "session-b", "detail": "Ready for review", "since": 7200, "hint": "Continue in that session."},
+    {"kind": "amail_proposal", "host": null, "sid": null, "title": "a-mail proposal", "detail": "Counts only", "since": null, "hint": "Answer in the a-mail app."},
+    {"kind": "approval", "host": "server1", "sid": null, "title": "Approve action", "detail": "Review action details", "since": 120, "hint": "Use atc web."},
+    {"kind": "blocked", "host": null, "sid": "session-a", "title": "session-a", "detail": "Permission prompt", "since": 60, "hint": "Answer in that session."},
+    {"kind": "amail_approval", "host": null, "sid": null, "title": "a-mail 3 approvals", "detail": "Counts only", "since": null, "hint": "Answer in the a-mail app."},
+    {"kind": "amail_request", "host": null, "sid": null, "title": "a-mail request", "detail": "Counts only", "since": null, "hint": "Answer at example.com."},
+    {"kind": "amail_device", "host": null, "sid": null, "title": "a-mail device", "detail": "Counts only", "since": null, "hint": "Approve in the a-mail app."},
+    {"kind": "amail_inbox", "host": null, "sid": null, "title": "a-mail inbox", "detail": "Counts only", "since": null, "hint": ""}
+  ]
+}

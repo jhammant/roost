@@ -7,10 +7,14 @@ badge that only lights up when something needs you.
 🐦 2                       ← the most urgent badge across every module
 ───────────────────────────────────────────────
 Agents — 1 blocked · 2 waiting · 6 working
-  Blocked on you
-  !  steer-06 — permission prompt: Bash  touch x        → jumps to its terminal tab
+  Needs you
+  Approve in atc web… — Review action                  → opens the web UI for passkey approval
+  !  session-a — permission prompt: Bash  touch x      → jumps to its terminal tab
+  a-mail request — Answer in the a-mail app.
   Waiting on you
   ◆  docs-site — “Of your 5 open PRs, one needs action…”
+  Later ▸                                             → next 24 h, e.g. “Wake session-a — in 12m”
+  Jobs ▸                                              → hosts, with failing jobs first
   Working
   ●  web-app — Bash  Run the playtest
   Servers
@@ -18,6 +22,7 @@ Agents — 1 blocked · 2 waiting · 6 working
   Quota: Claude 5h 25% · week 80%   Codex weekly 19%   Kimi 5h 1%   DeepSeek $11.42
   Swarm cap: ≤4 comfortable (auto) ▸
   Open atc…
+  Open atc web
 ───────────────────────────────────────────────
 Clipboard
   Recent clips ▸
@@ -33,13 +38,50 @@ Open at login ✓
 
 | Module | What it is |
 |---|---|
-| **Agents** | [atc](https://github.com/jhammant/atc), air traffic control for coding agents. Badge: sessions blocked on a prompt (red), else waiting for you (orange). Click a session to jump to its terminal tab; raise or lower the swarm cap; see your servers and every provider's quota. |
+| **Agents** | [atc](https://github.com/jhammant/atc), air traffic control for coding agents. Badge: urgent needs (red), else failing jobs (orange), else waiting sessions (orange). See Needs you, Later and Jobs; jump to a session or open atc web for approvals; raise or lower the swarm cap; see servers and provider quotas. |
 | **Clipboard** | [SmartClip](https://github.com/jhammant/SmartClip)'s engine: records everything you copy (text, images with their text read on-device, file paths), ⌥⌘V to search and paste it back. Same history store as SmartClip's `/cpy`, `/pst` and `/clh`. |
 | **Plugins** | Folders in `~/.config/roost/plugins/`, each with a `plugin.json`: their own schedule, timeout and environment, confirmations for anything with side effects, and a tool can ship its plugin in its own repo. See [Plugins](#plugins). |
 | **Scripts** | Every executable in `~/.config/roost/modules/` becomes a submenu. No Swift needed. |
 
 Every module, built in or plugin, can be switched off under **Plugins ▸** in the menu. Roost remembers it in
 `~/.config/roost/settings.json`.
+
+### Agents: needs, approvals and jobs
+
+**Needs you** puts urgent queue items first: blocked sessions, atc approvals, and a-mail approvals,
+requests and device approvals. The red badge uses `counts.needs_urgent`, which counts queue items, not the
+quantities inside an a-mail summary. Other a-mail items display their answer location from atc's hint;
+**Waiting on you** keeps session jump actions and waiting times. The needs queue replaces duplicate blocked
+and waiting entries from the old session groups. Remote needs remain visible between the slower host polls.
+
+**Approve in atc web…** and **Open atc web** open the configured URL. Approval happens in the web UI using
+your passkey. Put the web UI's URL on the first line of `~/.config/atc/web-url` (an app started at login has
+no shell environment), or set `ATC_WEB_URL` in Roost's environment, for example:
+
+```bash
+ATC_WEB_URL=https://example.com/atc .build/debug/Roost
+```
+
+For an app opened from Finder or at login, set the GUI launch environment and restart Roost:
+
+```bash
+launchctl setenv ATC_WEB_URL https://example.com/atc
+```
+
+`launchctl setenv` applies to the current login session; arrange to set it at login if you need it after
+logging out. A shell-profile export alone does not configure a Finder-launched app. Without a valid URL,
+approval rows remain visible but disabled, with an `ATC_WEB_URL` setup hint, and **Open atc web** is omitted.
+
+**Later** lists scheduled wake-ups and reminders due from now through the next 24 hours, sorted by time,
+with labels such as `in 12m`. Items with unknown, invalid or past times are omitted. These rows are informational.
+
+**Jobs** groups loom jobs by host, failing first, and shows state, last exit code and purpose (as a tooltip).
+Click a job to open `loom jobs status <name>` in Terminal; remote hosts use
+`loom --host <host> jobs status <name>`. Unreachable hosts show their error and any last-seen jobs.
+The orange badge uses `counts.jobs_failing` before falling back to the waiting-session count.
+
+Older atc output without these keys retains the original blocked/waiting menu and badge. Missing counts
+are derived from available queue/job rows; absent or empty Later and Jobs data adds no submenu.
 
 ### Writing a script module
 
