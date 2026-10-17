@@ -73,7 +73,8 @@ public struct PluginManifest: Equatable {
             command: command,
             interval: try seconds("interval", defaultInterval, 5...86_400),
             timeout: try seconds("timeout", defaultTimeout, 1...300),
-            environment: env.mapValues { ($0 as NSString).expandingTildeInPath },
+            // Only a leading ~ is expanded: expandingTildeInPath also squashes "https://" to "https:/".
+            environment: env.mapValues { $0.hasPrefix("~") ? ($0 as NSString).expandingTildeInPath : $0 },
             requires: tools)
     }
 }
