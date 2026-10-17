@@ -27,6 +27,19 @@ final class AgentsMenuTests: XCTestCase {
         ]
     }
 
+    func testPlainTerminalSessionJumpsStraightToItsTty() {
+        // Arrange
+        let plain: [String: Any] = ["kind": "interactive", "tty": "/dev/ttys003", "herdr": NSNull()]
+        let herdr: [String: Any] = ["kind": "interactive", "tty": "/dev/ttys004", "herdr": "w1:p2"]
+        let background: [String: Any] = ["kind": "background", "tty": "/dev/ttys007"]
+        // Act
+        let commands = [plain, herdr, background].map { AgentsMenu.jumpCommand($0, sid: "s-9", atc: atc) }
+        // Assert
+        XCTAssertEqual(commands, [[atc, "--jump", "s-9", "--tty", "/dev/ttys003"],
+                                  [atc, "--jump", "s-9"],
+                                  [atc, "--jump", "s-9"]])
+    }
+
     func testBlockedSessionsBadgeRedAndJumpThroughAtc() {
         let (nodes, badge) = AgentsMenu.build(model: fixture(), error: nil, providers: [], atc: atc)
         XCTAssertEqual(badge, Badge("1", .alert))
@@ -105,6 +118,12 @@ final class ScriptMenuTests: XCTestCase {
             "    More  ▸",
             "        Deep    [run: /bin/sh -c true]",
         ])
+    }
+
+    func testSeparatorItemDrawsALine() {
+        let json = #"{"title": "Tools", "items": [{"title": "One"}, {"separator": true}, {"title": "Two"}]}"#
+        let result = ScriptMenu.parse(Data(json.utf8), fallbackTitle: "x")
+        XCTAssertEqual(MenuDump.lines([result.node]), ["Tools  ▸", "    · One", "    ────────", "    · Two"])
     }
 
     func testBadJSONBecomesAnErrorEntry() {
