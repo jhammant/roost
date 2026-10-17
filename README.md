@@ -62,6 +62,7 @@ Roost runs each executable every 30 seconds and reads JSON from its output:
   across all modules is shown next to the bird.
 - An item can `run` a shell command (string) or an argv array, `open` a URL or path, or hold `items` (a
   submenu). Add `disabled`, `checked` or `tooltip` as you like. An item with none of these is a greyed line.
+  `{"separator": true}` draws a line.
 - A script that fails, times out (10s) or prints something other than JSON shows up as `name ⚠︎` with the
   error inside, so a broken module never takes the menu down.
 
@@ -125,7 +126,9 @@ Roost --uninstall-plugin crm-mail-sync   # remove the link; the plugin's folder 
 Plugins in the wild:
 
 - [crm-mail-sync](https://github.com/jhammant/crm-mail-sync/tree/main/integrations/roost): the HubSpot
-  email-logging review queue, with *Log to HubSpot…* and *Skip* per email.
+  email-logging review queue, with *Log to HubSpot…* and *Skip* per email, and any person flagged to sync.
+- [claude-sessions](https://github.com/jhammant/claude-sessions/tree/main/roost-plugin): tile your Claude Code
+  windows (grid, focus, side by side, per display), auto-tile, reopen a closed window.
 
 ## Build and install
 

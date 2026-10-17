@@ -115,6 +115,7 @@ public enum ScriptMenu {
     }
 
     static func node(_ item: [String: Any], context: MenuNode.Command? = nil) -> MenuNode {
+        if item["separator"] as? Bool == true { return .separator }
         let title = item["title"] as? String ?? "?"
         let children = (item["items"] as? [[String: Any]] ?? []).map { node($0, context: context) }
         var argv: [String]?
