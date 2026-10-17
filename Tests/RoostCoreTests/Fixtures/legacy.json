@@ -1,0 +1,8 @@
+{
+  "groups": {
+    "blocked": [{"name": "session-a", "sid": "session-a", "doing": "Permission prompt", "state": "needs you 1m"}],
+    "waiting": [{"name": "session-b", "sid": "session-b", "doing": "Ready for review", "state": "waiting 2h"}],
+    "working": [{"name": "session-c", "sid": "session-c", "doing": "Running checks"}]
+  },
+  "counts": {"blocked": 1, "waiting": 1, "working": 1}
+}

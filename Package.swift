@@ -14,6 +14,6 @@ let package = Package(
             "RoostCore",
             .product(name: "SmartClipKit", package: "mac"),
         ]),
-        .testTarget(name: "RoostCoreTests", dependencies: ["RoostCore"]),
+        .testTarget(name: "RoostCoreTests", dependencies: ["RoostCore"], resources: [.copy("Fixtures")]),
     ]
 )

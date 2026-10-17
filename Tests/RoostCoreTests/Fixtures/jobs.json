@@ -1,0 +1,15 @@
+{
+  "needs": [{"kind": "waiting", "host": null, "sid": "session-a", "title": "session-a", "detail": "Review", "since": 720, "hint": "Continue in that session."}],
+  "counts": {"needs": 1, "needs_urgent": 0, "jobs_failing": 2},
+  "jobs": {
+    "local": {"ok": true, "error": null, "jobs": [
+      {"name": "job-a", "kind": "interval", "state": "idle", "running": false, "failing": false, "last_exit": 0, "purpose": "Periodic check"},
+      {"name": "job-b", "kind": "interval", "state": "idle", "running": false, "failing": true, "last_exit": 2, "purpose": "Check failure"},
+      {"name": "job-c", "kind": "daemon", "state": "running", "running": true, "failing": false, "last_exit": null, "purpose": "Background check"}
+    ], "apps": []},
+    "server1": {"ok": false, "error": "Connection timed out\nDetails", "jobs": [
+      {"name": "job-d", "kind": "interval", "state": "idle", "running": false, "failing": true, "last_exit": 1, "purpose": "Remote check"}
+    ], "apps": []},
+    "laptop": {"ok": true, "jobs": [], "apps": []}
+  }
+}
